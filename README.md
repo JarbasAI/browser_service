@@ -2,6 +2,8 @@
 
 it is a skill that keeps a webdriver instance ready to do stuff, helper class can be imported and used in any skill to control this browser
 
+if multiple skills make calls to webbrowser at once there will be trouble, some sort of queue will be implemented sometime
+
 # troubles
 
 if it complains of geckodriver, move it into usr/bin or export it into PATH
@@ -15,7 +17,50 @@ if it complains of geckodriver, move it into usr/bin or export it into PATH
         from browser_service import BrowserControl
 
 
+# example, querying inspirobot
 
+           def handle_inspirobot_intent(self, message):
+                # get a browser control instance
+                browser = BrowserControl(self.emitter)
+                # get inspirobot url
+                open = browser.open_url("http://inspirobot.me/")
+                if open is None:
+                    self.speak("Could not query inspirobot")
+                    return
+
+                # search generate button by xpath
+                generate = ".//*[@id='top']/div[1]/div[2]/div/div[2]"
+                browser.get_element(data=generate, name="generate", type="xpath")
+
+                # click generate button
+                browser.click_element("generate")
+
+                # try until you find generated picture
+                fails = 0
+                sucess = False
+                while fails < 5 and not sucess:
+                    # find generated picture by class_name
+                    browser.get_element(data="generated-image", name="pic", type="class")
+                    # get attribute "src" of "pic" element
+                    src = browser.get_attribute('src', 'pic')
+                    # check if the adquired url is a generated picture or the default
+                    if "generated.inspirobot" not in src:
+                        fails += 1
+                        sleep(0.5)
+                    else:
+                        sucess = True
+
+                # tell user if you could not get picture
+                if not sucess:
+                    self.speak("could not get inspirobot generated picture")
+                    return
+
+                # download the image
+                out_path = self.save_path + "/" + time.asctime() + ".jpg"
+                urlretrieve(src, out_path.replace(" ", "_"))
+
+                # give it to user # info in metadata can be captured
+                self.speak("Here is your Inspirobot picture", metadata={"file":out_path, "url":src})
 
 # example, querying cleverbot website
 
@@ -145,3 +190,5 @@ if it complains of geckodriver, move it into usr/bin or export it into PATH
 ## Usage:
 
         ask cleverbot what's up
+
+        inspirobot
