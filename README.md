@@ -1,5 +1,9 @@
 # Firefox Browser Service Skill
 
+under a refactoring, use at your own risk
+
+
+
 it is a skill that keeps a webdriver instance ready to do stuff, helper class can be imported and used in any skill to control this browser
 
 if multiple skills make calls to webbrowser at once there will be trouble, some sort of queue will be implemented sometime
@@ -10,11 +14,7 @@ if it complains of geckodriver, move it into usr/bin or export it into PATH
 
 # Usage
 
-        import sys
-        from os.path import dirname
-        sys.path.append(dirname(dirname(__file__)))
-
-        from browser_service import BrowserControl
+        from mycroft_jarbas_utils.browser import BrowserControl
 
 
 # example, querying inspirobot
