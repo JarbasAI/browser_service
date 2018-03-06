@@ -47,11 +47,19 @@ class BrowserService(MycroftSkill):
         self.display.start()
         self.driver = None
         self.elements = {}
+        self.timeout = 300
 
     def initialize(self):
+        i = 0
         started = self.start_browser()
+        while not started and i < 5:
+            self.timeout += 60
+            i += 1
+            started = self.start_browser()
+
         if not started:
             raise EnvironmentError("could not start selenium webdriver")
+
         self.log.info("browser service started: " + str(started))
         self.emitter.on("browser_restart_request", self.handle_restart_browser)
         self.emitter.on("browser_close_request", self.handle_close_browser)
@@ -117,7 +125,7 @@ class BrowserService(MycroftSkill):
                 self.log.debug("tried to close driver but: " + str(e))
 
         try:
-            self.driver = webdriver.Firefox(timeout=320)
+            self.driver = webdriver.Firefox(timeout=self.timeout)
             return True
         except Exception as e:
             self.log.error("Exception: " + str(e))
