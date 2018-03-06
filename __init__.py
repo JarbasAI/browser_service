@@ -42,15 +42,16 @@ __author__ = 'jarbas'
 class BrowserService(MycroftSkill):
     def __init__(self):
         super(BrowserService, self).__init__(name="BrowserSkill")
-        self.reload_skill = False
         # start virtual display
-        display = Display(visible=0, size=(800, 600))
-        display.start()
+        self.display = Display(visible=0, size=(800, 600))
+        self.display.start()
         self.driver = None
         self.elements = {}
 
     def initialize(self):
         started = self.start_browser()
+        if not started:
+            raise EnvironmentError("could not start selenium webdriver")
         self.log.info("browser service started: " + str(started))
         self.emitter.on("browser_restart_request", self.handle_restart_browser)
         self.emitter.on("browser_close_request", self.handle_close_browser)
@@ -109,14 +110,14 @@ class BrowserService(MycroftSkill):
                                                                      True, "url": self.driver.current_url, "title":self.driver.title}))
 
     def start_browser(self):
+        if self.driver is not None:
+            try:
+                self.driver.quit()
+            except Exception as e:
+                self.log.debug("tried to close driver but: " + str(e))
 
         try:
-            self.driver.quit()
-        except Exception as e:
-            self.log.debug("tried to close driver but: " + str(e))
-
-        try:
-            self.driver = webdriver.Firefox(timeout=60)
+            self.driver = webdriver.Firefox(timeout=320)
             return True
         except Exception as e:
             self.log.error("Exception: " + str(e))
@@ -327,6 +328,7 @@ class BrowserService(MycroftSkill):
         self.emitter.remove("browser_add_cookies_request",
                         self.handle_add_cookies)
         self.emitter.remove("browser_get_atr_request", self.handle_get_attribute)
+        self.display.stop()
 
 
 def create_skill():
