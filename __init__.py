@@ -1,4 +1,4 @@
-# Copyright 2016 Mycroft AI, Inc.
+# Copyright 2018 Mycroft AI, Inc.
 #
 # This file is part of Mycroft Core.
 #
@@ -21,6 +21,7 @@ from mycroft.skills.core import MycroftSkill
 import time
 
 import socket
+
 socket.setdefaulttimeout(300)
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
@@ -28,12 +29,12 @@ from pyvirtualdisplay import Display
 
 import logging
 
-
 # disable logs from easyprocess, or there is too much spam from display init
 logging.getLogger("easyprocess").setLevel(logging.WARNING)
 
 # disable selenium logger
 from selenium.webdriver.remote.remote_connection import LOGGER as selenium_log
+
 selenium_log.setLevel(logging.WARNING)
 
 __author__ = 'jarbas'
@@ -61,22 +62,28 @@ class BrowserService(MycroftSkill):
             raise EnvironmentError("could not start selenium webdriver")
 
         self.log.info("browser service started: " + str(started))
-        self.emitter.on("browser_restart_request", self.handle_restart_browser)
+        self.emitter.on("browser_restart_request",
+                        self.handle_restart_browser)
         self.emitter.on("browser_close_request", self.handle_close_browser)
         self.emitter.on("browser_url_request", self.handle_go_to_url)
         self.emitter.on("browser_title_request", self.handle_title_request)
         self.emitter.on("browser_go_back_request", self.handle_go_back)
-        self.emitter.on("browser_current_url_request", self.handle_current_url)
+        self.emitter.on("browser_current_url_request",
+                        self.handle_current_url)
         self.emitter.on("browser_get_element", self.handle_get_element)
         self.emitter.on("browser_get_elements", self.handle_get_elements)
-        self.emitter.on("browser_get_element_text", self.handle_get_element_text)
-        self.emitter.on("browser_available_elements_request", self.handle_available_elements)
+        self.emitter.on("browser_get_element_text",
+                        self.handle_get_element_text)
+        self.emitter.on("browser_available_elements_request",
+                        self.handle_available_elements)
         self.emitter.on("browser_send_keys_to_element", self.handle_send_keys)
         self.emitter.on("browser_reset_elements", self.handle_reset_elements)
         self.emitter.on("browser_click_element", self.handle_click_element)
         self.emitter.on("browser_clear_element", self.handle_clear_element)
-        self.emitter.on("browser_get_cookies_request", self.handle_get_cookies)
-        self.emitter.on("browser_add_cookies_request", self.handle_add_cookies)
+        self.emitter.on("browser_get_cookies_request",
+                        self.handle_get_cookies)
+        self.emitter.on("browser_add_cookies_request",
+                        self.handle_add_cookies)
         self.emitter.on("browser_get_atr_request", self.handle_get_attribute)
 
     def handle_get_attribute(self, message):
@@ -84,38 +91,48 @@ class BrowserService(MycroftSkill):
         elem = message.data.get("element_name")
         if elem not in self.elements.keys():
             self.log.error("No such element")
-            self.emitter.emit(Message("browser_get_atr_response", {"atr": atr, "result":None, "error":"No such element"}))
+            self.emitter.emit(Message("browser_get_atr_response",
+                                      {"atr": atr, "result": None,
+                                       "error": "No such element"}))
             return
         result = self.elements[elem].get_attribute(atr)
-        self.emitter.emit(Message("browser_get_atr_response", {"atr": atr, "result":result}))
+        self.emitter.emit(Message("browser_get_atr_response",
+                                  {"atr": atr, "result": result}))
 
     def handle_get_cookies(self, message):
         cookies = self.driver.get_cookies()
-        self.emitter.emit(Message("browser_get_cookies_response", {"cookies":cookies}))
+        self.emitter.emit(
+            Message("browser_get_cookies_response", {"cookies": cookies}))
 
     def handle_title_request(self, message):
-        self.emitter.emit(Message("browser_title_response", {"title": self.driver.title}))
+        self.emitter.emit(
+            Message("browser_title_response", {"title": self.driver.title}))
 
     def handle_add_cookies(self, message):
         cookies = message.data.get("cookies", [])
         if len(cookies) == 0:
             self.emitter.emit(Message("browser_add_cookies_response",
                                       {"success": False, "cookies":
-                                          cookies, "cookie_number": len(cookies)}))
+                                          cookies,
+                                       "cookie_number": len(cookies)}))
             return
         for cookie in cookies:
             self.driver.add_cookie(cookie)
         self.emitter.emit(Message("browser_add_cookies_response",
-                                  {"success":True, "cookies":cookies, "cookie_number":len(cookies)}))
+                                  {"success": True, "cookies": cookies,
+                                   "cookie_number": len(cookies)}))
 
     def handle_go_back(self, message):
         self.driver.back()
         self.emitter.emit(Message("browser_go_back_result", {"success":
-                                                                 True, "url": self.driver.current_url}))
+                                                                 True,
+                                                             "url": self.driver.current_url}))
 
     def handle_current_url(self, message):
         self.emitter.emit(Message("browser_current_url_result", {"success":
-                                                                     True, "url": self.driver.current_url, "title":self.driver.title}))
+                                                                     True,
+                                                                 "url": self.driver.current_url,
+                                                                 "title": self.driver.title}))
 
     def start_browser(self):
         if self.driver is not None:
@@ -145,10 +162,12 @@ class BrowserService(MycroftSkill):
 
     def handle_reset_elements(self, message):
         self.elements = {}
-        self.emitter.emit(Message("browser_elements_reset_result", {"elements": self.elements}))
+        self.emitter.emit(Message("browser_elements_reset_result",
+                                  {"elements": self.elements}))
 
     def handle_available_elements(self, message):
-        self.emitter.emit(Message("browser_available_elements", {"elements": self.elements}))
+        self.emitter.emit(Message("browser_available_elements",
+                                  {"elements": self.elements}))
 
     def handle_send_keys(self, message):
         # TODO error checking, see if element in self.elemtns.keys()
@@ -162,25 +181,29 @@ class BrowserService(MycroftSkill):
             else:
                 # TODO all keys
                 self.emitter.emit(Message("browser_sent_keys",
-                                          {"success":False, "name": name, "data": text, "error": "special key not yet implemented"}))
+                                          {"success": False, "name": name,
+                                           "data": text,
+                                           "error": "special key not yet implemented"}))
                 return
         else:
             element.send_keys(text)
             # TODO change this, needed because text may be big
             time.sleep(1)
-        self.emitter.emit(Message("browser_sent_keys", {"success":True,
-                                                        "name": name, "data": text}))
+        self.emitter.emit(Message("browser_sent_keys", {"success": True,
+                                                        "name": name,
+                                                        "data": text}))
 
     def handle_get_elements(self, message):
-        get_by = message.data.get("type") #xpath, css, name, id
-        data = message.data.get("data") # name, xpath expression....
-        name = message.data.get("element_name")# how to call this element later
+        get_by = message.data.get("type")  # xpath, css, name, id
+        data = message.data.get("data")  # name, xpath expression....
+        name = message.data.get(
+            "element_name")  # how to call this element later
         try:
             i = 0
             if get_by == "xpath":
                 for e in self.driver.find_elements_by_xpath(data):
-                    self.elements[name+str(i)] = e
-                    i+=1
+                    self.elements[name + str(i)] = e
+                    i += 1
             elif get_by == "css":
                 for e in self.driver.find_elements_by_css(data):
                     self.elements[name + str(i)] = e
@@ -213,19 +236,27 @@ class BrowserService(MycroftSkill):
                 self.log.error("Invalid element type: " + get_by)
                 self.emitter.emit(
                     Message("browser_elements_stored", {"name": name,
-                                                        "type": get_by, "data": data, "success": False}))
+                                                        "type": get_by,
+                                                        "data": data,
+                                                        "success": False}))
                 return
             self.emitter.emit(Message("browser_elements_stored",
-                                      {"name":name, "type":get_by, "data":data, "success":True}))
+                                      {"name": name, "type": get_by,
+                                       "data": data, "success": True}))
         except Exception as e:
             self.log.error(e)
             self.emitter.emit(Message("browser_elements_stored", {"name":
-                                                                      name, "type": get_by, "data": data, "success":False}))
+                                                                      name,
+                                                                  "type": get_by,
+                                                                  "data": data,
+                                                                  "success": False}))
 
     def handle_get_element(self, message):
-        get_by = message.data.get("type") #xpath, css, name, id
-        data = message.data.get("data").encode('ascii', 'ignore').decode('ascii') # name, xpath expression....
-        name = message.data.get("element_name")# how to call this element later
+        get_by = message.data.get("type")  # xpath, css, name, id
+        data = message.data.get("data").encode('ascii', 'ignore').decode(
+            'ascii')  # name, xpath expression....
+        name = message.data.get(
+            "element_name")  # how to call this element later
         try:
             # todo extra
             if get_by == "xpath":
@@ -235,40 +266,52 @@ class BrowserService(MycroftSkill):
             elif get_by == "name":
                 self.elements[name] = self.driver.find_element_by_name(data)
             elif get_by == "class":
-                self.elements[name] = self.driver.find_element_by_class_name(data)
+                self.elements[name] = self.driver.find_element_by_class_name(
+                    data)
             elif get_by == "link_text":
-                self.elements[name] = self.driver.find_element_by_link_text(data)
+                self.elements[name] = self.driver.find_element_by_link_text(
+                    data)
             elif get_by == "partial_link_text":
-                self.elements[name] = self.driver.find_element_by_partial_link_text(data)
+                self.elements[
+                    name] = self.driver.find_element_by_partial_link_text(
+                    data)
             elif get_by == "tag_name":
-                self.elements[name] = self.driver.find_element_by_tag_name(data)
+                self.elements[name] = self.driver.find_element_by_tag_name(
+                    data)
             elif get_by == "id":
                 self.elements[name] = self.driver.find_element_by_id(data)
             else:
                 self.log.error("Invalid element type: " + get_by)
                 self.emitter.emit(
                     Message("browser_element_stored", {"name": name,
-                                                       "type": get_by, "data": data, "success": False}))
+                                                       "type": get_by,
+                                                       "data": data,
+                                                       "success": False}))
                 return
             self.emitter.emit(Message("browser_element_stored",
-                                      {"name":name, "type":get_by, "data":data, "success":True}))
+                                      {"name": name, "type": get_by,
+                                       "data": data, "success": True}))
         except Exception as e:
             self.log.error(e)
-            self.emitter.emit(Message("browser_element_stored", {"name":
-                                                                     name, "type": get_by, "data": data, "success":False}))
+            self.emitter.emit(Message("browser_element_stored",
+                                      {"name": name,
+                                       "type": get_by,
+                                       "data": data,
+                                       "success": False}))
 
     def handle_get_element_text(self, message):
         # TODO error checking, see if element in self.elemtns.keys()
         name = message.data.get("element_name")
         element = self.elements[name]
-        self.emitter.emit(Message("browser_element_text", {"name": name, "text": element.text}))
+        self.emitter.emit(Message("browser_element_text",
+                                  {"name": name, "text": element.text}))
 
     def handle_click_element(self, message):
         name = message.data.get("element_name")
         try:
             self.elements[name].click()
             self.emitter.emit(Message("browser_element_clicked",
-                                      {"success":True, "element": name}))
+                                      {"success": True, "element": name}))
         except Exception as e:
             self.log.error(e)
             self.emitter.emit(Message("browser_element_clicked",
@@ -284,12 +327,12 @@ class BrowserService(MycroftSkill):
     def handle_restart_browser(self, message):
         started = self.start_browser()
         self.emitter.emit(Message("browser_restart_result",
-                                  {"success":started}))
+                                  {"success": started}))
 
     def handle_go_to_url(self, message):
         url = message.data.get("url")
         if "http" not in url:
-            url = "http://"+url
+            url = "http://" + url
         fails = 0
         while fails < 5:
             try:
@@ -301,7 +344,10 @@ class BrowserService(MycroftSkill):
                 self.log.error(e)
             time.sleep(0.5)
             fails += 1
-        self.emitter.emit(Message("browser_url_opened", {"result": self.driver.current_url, "page_title": self.driver.title, "requested_url": url}))
+        self.emitter.emit(Message("browser_url_opened",
+                                  {"result": self.driver.current_url,
+                                   "page_title": self.driver.title,
+                                   "requested_url": url}))
 
     def stop(self):
         try:
@@ -313,28 +359,35 @@ class BrowserService(MycroftSkill):
     def shutdown(self):
         self.stop()
         self.emitter.remove("browser_restart_request",
-                        self.handle_restart_browser)
-        self.emitter.remove("browser_close_request", self.handle_close_browser)
+                            self.handle_restart_browser)
+        self.emitter.remove("browser_close_request",
+                            self.handle_close_browser)
         self.emitter.remove("browser_url_request", self.handle_go_to_url)
-        self.emitter.remove("browser_title_request", self.handle_title_request)
+        self.emitter.remove("browser_title_request",
+                            self.handle_title_request)
         self.emitter.remove("browser_go_back_request", self.handle_go_back)
         self.emitter.remove("browser_current_url_request",
-                        self.handle_current_url)
+                            self.handle_current_url)
         self.emitter.remove("browser_get_element", self.handle_get_element)
         self.emitter.remove("browser_get_elements", self.handle_get_elements)
         self.emitter.remove("browser_get_element_text",
-                        self.handle_get_element_text)
+                            self.handle_get_element_text)
         self.emitter.remove("browser_available_elements_request",
-                        self.handle_available_elements)
-        self.emitter.remove("browser_send_keys_to_element", self.handle_send_keys)
-        self.emitter.remove("browser_reset_elements", self.handle_reset_elements)
-        self.emitter.remove("browser_click_element", self.handle_click_element)
-        self.emitter.remove("browser_clear_element", self.handle_clear_element)
+                            self.handle_available_elements)
+        self.emitter.remove("browser_send_keys_to_element",
+                            self.handle_send_keys)
+        self.emitter.remove("browser_reset_elements",
+                            self.handle_reset_elements)
+        self.emitter.remove("browser_click_element",
+                            self.handle_click_element)
+        self.emitter.remove("browser_clear_element",
+                            self.handle_clear_element)
         self.emitter.remove("browser_get_cookies_request",
-                        self.handle_get_cookies)
+                            self.handle_get_cookies)
         self.emitter.remove("browser_add_cookies_request",
-                        self.handle_add_cookies)
-        self.emitter.remove("browser_get_atr_request", self.handle_get_attribute)
+                            self.handle_add_cookies)
+        self.emitter.remove("browser_get_atr_request",
+                            self.handle_get_attribute)
         self.display.stop()
         super(BrowserService, self).shutdown()
 

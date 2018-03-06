@@ -3,6 +3,15 @@
 under a refactoring, use at your own risk
 
 
+this should be made into a priority skill in the config file
+
+        // General skill values
+          "skills": {
+            ...
+            // priority skills to be loaded first
+            "priority_skills": ["skill-pairing", "browser_service"],
+            ...
+          },
 
 it is a skill that keeps a webdriver instance ready to do stuff, helper class can be imported and used in any skill to control this browser
 
