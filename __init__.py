@@ -312,7 +312,6 @@ class BrowserService(MycroftSkill):
 
     def shutdown(self):
         self.stop()
-        super(MycroftSkill, self).shutdown()
         self.emitter.remove("browser_restart_request",
                         self.handle_restart_browser)
         self.emitter.remove("browser_close_request", self.handle_close_browser)
@@ -337,6 +336,7 @@ class BrowserService(MycroftSkill):
                         self.handle_add_cookies)
         self.emitter.remove("browser_get_atr_request", self.handle_get_attribute)
         self.display.stop()
+        super(BrowserService, self).shutdown()
 
 
 def create_skill():
