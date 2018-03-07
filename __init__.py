@@ -22,20 +22,12 @@ import time
 
 import socket
 
-socket.setdefaulttimeout(300)
+socket.setdefaulttimeout(500)
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 from pyvirtualdisplay import Display
-
 import logging
 
-# disable logs from easyprocess, or there is too much spam from display init
-logging.getLogger("easyprocess").setLevel(logging.WARNING)
-
-# disable selenium logger
-from selenium.webdriver.remote.remote_connection import LOGGER as selenium_log
-
-selenium_log.setLevel(logging.WARNING)
 
 __author__ = 'jarbas'
 
@@ -43,25 +35,52 @@ __author__ = 'jarbas'
 class BrowserService(MycroftSkill):
     def __init__(self):
         super(BrowserService, self).__init__(name="BrowserSkill")
+        self.driver = None
+        self.elements = {}
+        if "timeout" not in self.settings:
+            self.settings["timeout"] = 300
+        self.timeout = self.settings["timeout"]
+        # disable logs
+        if "easyprocess_debug" not in self.settings:
+            self.settings["easyprocess_debug"] = False
+        if "selenium_debug" not in self.settings:
+            self.settings["selenium_debug"] = False
+        if not self.settings["easyprocess_debug"]:
+            # too much spam from display init
+            logging.getLogger("easyprocess").setLevel(logging.WARNING)
+        if not self.settings["selenium_debug"]:
+            # disable selenium logger
+            from selenium.webdriver.remote.remote_connection import \
+                LOGGER as selenium_log
+            selenium_log.setLevel(logging.WARNING)
+
         # start virtual display
         self.display = Display(visible=0, size=(800, 600))
         self.display.start()
-        self.driver = None
-        self.elements = {}
-        self.timeout = 300
 
     def initialize(self):
+        priority = self.config_core.get("skills", {}).get(
+            "priority_skills", [])
+        folder = self._dir.split("/")[-1]
+        if folder not in priority:
+            self.speak_dialog("priority.warning")
+
+        if not self.init_browser_and_listener():
+            raise EnvironmentError("could not start selenium webdriver")
+
+    def init_browser_and_listener(self, message=None):
         i = 0
         started = self.start_browser()
         while not started and i < 5:
-            self.timeout += 60
+            self.timeout += 100
             i += 1
             started = self.start_browser()
 
         if not started:
-            raise EnvironmentError("could not start selenium webdriver")
+            self.speak_dialog("load.error")
+            return False
 
-        self.log.info("browser service started: " + str(started))
+        self.log.info("web driver started: " + str(started))
         self.emitter.on("browser_restart_request",
                         self.handle_restart_browser)
         self.emitter.on("browser_close_request", self.handle_close_browser)
@@ -85,6 +104,8 @@ class BrowserService(MycroftSkill):
         self.emitter.on("browser_add_cookies_request",
                         self.handle_add_cookies)
         self.emitter.on("browser_get_atr_request", self.handle_get_attribute)
+        self.log.info("browser service started: " + str(started))
+        return True
 
     def handle_get_attribute(self, message):
         atr = message.data.get("atr")
@@ -349,15 +370,7 @@ class BrowserService(MycroftSkill):
                                    "page_title": self.driver.title,
                                    "requested_url": url}))
 
-    def stop(self):
-        try:
-            self.driver.quit()
-            Display.close()
-        except Exception as e:
-            self.log.error(e)
-
-    def shutdown(self):
-        self.stop()
+    def remove_listeners(self):
         self.emitter.remove("browser_restart_request",
                             self.handle_restart_browser)
         self.emitter.remove("browser_close_request",
@@ -388,8 +401,13 @@ class BrowserService(MycroftSkill):
                             self.handle_add_cookies)
         self.emitter.remove("browser_get_atr_request",
                             self.handle_get_attribute)
-        self.display.stop()
+
+    def shutdown(self):
+        if self.driver:
+            self.driver.quit()
+        self.remove_listeners()
         super(BrowserService, self).shutdown()
+        self.display.stop()
 
 
 def create_skill():
